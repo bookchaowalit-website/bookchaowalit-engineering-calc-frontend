@@ -2,12 +2,11 @@
 
 ## Current state
 
-Score: 7/10 (was 5/10) — beam math is tested and validated, results flag staleness, shear added; CI in place.
+Score: 8/10 (was 7/10) — beam math is tested and validated, results flag staleness, shear added; CI in place.
 
 ## Backlog
 
 - P1: Deflection check (needs E and I inputs, clearly labelled illustrative).
-- P1: Unit toggle (kN/m ↔ kgf/m) with tested conversions.
 - P2: Draw the load/shear/moment diagrams from the solved values instead of the static beam visual.
 - P2: Playwright smoke test for case switch → run → reset.
 
@@ -21,3 +20,4 @@ Score: 7/10 (was 5/10) — beam math is tested and validated, results flag stale
 ## Done in this pass (pass 2)
 
 - Added config-driven canonical host (the app had no sitemap or robots at all): `lib/site.ts` resolves `NEXT_PUBLIC_SITE_URL` (validated; clear error on a non-http(s) value, default is the Vercel project URL) and feeds `metadataBase` plus generated `app/sitemap.ts` / `app/robots.ts` (`/api/` disallowed), matching the portfolio-wide pattern. Tested in `lib/site.test.ts`.
+- kN ↔ kgf unit toggle (standard gravity, 1 kN ≈ 101.97 kgf): load input, validation range and messages, moment/shear readout and audit note follow the chosen unit; switching converts the current load. Conversions and unit-aware validation tested in `lib/beam.test.ts`.

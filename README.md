@@ -2,7 +2,7 @@
 
 An illustrative field instrument for a simply supported beam check: choose a
 load case, set span and load, run, and read the maximum bending moment and end
-shear with units, formula and assumptions in view. Educational only; not a
+shear with units (kN or kgf), formula and assumptions in view. Educational only; not a
 stamped design or safety check.
 
 ## Run

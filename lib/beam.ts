@@ -18,16 +18,44 @@ export function formulaFor(caseId: LoadCaseId): { moment: string; shear: string 
   return isPointLoad(caseId) ? { moment: "M = P · L / 4", shear: "V = P / 2" } : { moment: "M = w · L² / 8", shear: "V = w · L / 2" };
 }
 
-export function loadUnit(caseId: LoadCaseId): string {
-  return isPointLoad(caseId) ? "kN" : "kN/m";
+export type ForceUnit = "kN" | "kgf";
+export const FORCE_UNITS: readonly ForceUnit[] = ["kN", "kgf"];
+/** 1 kN = 1000 N / 9.80665 m/s² (standard gravity) ≈ 101.97 kgf. */
+export const KGF_PER_KN = 1000 / 9.80665;
+
+/** Convert a force (or force per metre) in `unit` to kN. */
+export function toKn(value: number, unit: ForceUnit): number {
+  return unit === "kN" ? value : value / KGF_PER_KN;
+}
+
+/** Convert a force (or force per metre) in kN to `unit`. */
+export function fromKn(valueKn: number, unit: ForceUnit): number {
+  return unit === "kN" ? valueKn : valueKn * KGF_PER_KN;
+}
+
+export function loadUnit(caseId: LoadCaseId, unit: ForceUnit = "kN"): string {
+  return isPointLoad(caseId) ? unit : `${unit}/m`;
+}
+
+export function momentUnit(unit: ForceUnit = "kN"): string {
+  return `${unit}·m`;
+}
+
+/** Round for display/input: 2 decimals for kN, whole numbers for kgf. */
+export function roundForUnit(value: number, unit: ForceUnit): number {
+  const factor = unit === "kN" ? 100 : 1;
+  return Math.round(value * factor) / factor;
 }
 
 export type Validation = { ok: true } | { ok: false; errors: string[] };
 
-export function validate(span: number, load: number): Validation {
+/** `load` is in `unit`; the allowed range is fixed in kN and reported in the chosen unit. */
+export function validate(span: number, load: number, unit: ForceUnit = "kN"): Validation {
   const errors: string[] = [];
   if (!Number.isFinite(span) || span < SPAN_RANGE.min || span > SPAN_RANGE.max) errors.push(`Span must be between ${SPAN_RANGE.min} and ${SPAN_RANGE.max} m.`);
-  if (!Number.isFinite(load) || load < LOAD_RANGE.min || load > LOAD_RANGE.max) errors.push(`Load must be between ${LOAD_RANGE.min} and ${LOAD_RANGE.max}.`);
+  const min = roundForUnit(fromKn(LOAD_RANGE.min, unit), unit);
+  const max = roundForUnit(fromKn(LOAD_RANGE.max, unit), unit);
+  if (!Number.isFinite(load) || load < min || load > max) errors.push(`Load must be between ${min} and ${max} ${unit}.`);
   return errors.length ? { ok: false, errors } : { ok: true };
 }
 
