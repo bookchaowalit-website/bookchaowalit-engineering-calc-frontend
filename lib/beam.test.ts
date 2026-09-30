@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formulaFor, fromKn, KGF_PER_KN, loadUnit, momentUnit, roundForUnit, solve, toKn, validate } from "./beam";
+import { convertLoad, formulaFor, fromKn, KGF_PER_KN, loadBounds, loadUnit, momentUnit, roundForUnit, solve, toKn, validate } from "./beam";
 
 describe("solve", () => {
   it("uses wL²/8 and wL/2 for distributed loads", () => {
@@ -56,7 +56,7 @@ describe("unit conversion", () => {
 
   it("validates kgf input against the same physical range", () => {
     expect(validate(4, 400, "kgf")).toEqual({ ok: true });
-    expect(validate(4, 5, "kgf")).toEqual({ ok: false, errors: ["Load must be between 10 and 5099 kgf."] });
+    expect(validate(4, 5, "kgf")).toEqual({ ok: false, errors: ["Load must be between 11 and 5098 kgf."] });
     expect(roundForUnit(fromKn(LOAD_MAX_KN, "kgf"), "kgf")).toBe(5099);
   });
 
@@ -68,3 +68,28 @@ describe("unit conversion", () => {
 });
 
 const LOAD_MAX_KN = 50;
+
+describe("unit rounding at the pass/fail threshold", () => {
+  it("advertises only kgf bounds that are really inside the kN range", () => {
+    expect(loadBounds("kN")).toEqual({ min: 0.1, max: 50 });
+    expect(loadBounds("kgf")).toEqual({ min: 11, max: 5098 });
+  });
+
+  it("rejects kgf loads that round to the advertised limit but fall outside it in kN", () => {
+    // 10 kgf = 0.098 kN (< 0.1 kN) and 5099 kgf = 50.003 kN (> 50 kN).
+    expect(validate(4, 10, "kgf")).toMatchObject({ ok: false });
+    expect(validate(4, 5099, "kgf")).toMatchObject({ ok: false });
+    expect(validate(4, 11, "kgf")).toEqual({ ok: true });
+    expect(validate(4, 5098, "kgf")).toEqual({ ok: true });
+    expect(validate(4, 0.1)).toEqual({ ok: true });
+    expect(validate(4, 50)).toEqual({ ok: true });
+  });
+
+  it("keeps an in-range load in range when switching units", () => {
+    expect(convertLoad(0.1, "kN", "kgf")).toBe(11);
+    expect(convertLoad(50, "kN", "kgf")).toBe(5098);
+    expect(convertLoad(4, "kN", "kgf")).toBe(408);
+    expect(convertLoad(11, "kgf", "kN")).toBe(0.11);
+    expect(convertLoad(Number.NaN, "kN", "kgf")).toBeNaN();
+  });
+});

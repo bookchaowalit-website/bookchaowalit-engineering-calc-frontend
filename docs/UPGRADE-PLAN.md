@@ -21,3 +21,12 @@ Score: 8/10 (was 7/10) — beam math is tested and validated, results flag stale
 
 - Added config-driven canonical host (the app had no sitemap or robots at all): `lib/site.ts` resolves `NEXT_PUBLIC_SITE_URL` (validated; clear error on a non-http(s) value, default is the Vercel project URL) and feeds `metadataBase` plus generated `app/sitemap.ts` / `app/robots.ts` (`/api/` disallowed), matching the portfolio-wide pattern. Tested in `lib/site.test.ts`.
 - kN ↔ kgf unit toggle (standard gravity, 1 kN ≈ 101.97 kgf): load input, validation range and messages, moment/shear readout and audit note follow the chosen unit; switching converts the current load. Conversions and unit-aware validation tested in `lib/beam.test.ts`.
+
+## Done in this pass (pass 3)
+- Edge-case pass on `lib/beam.ts` (regression tests in `lib/beam.test.ts`):
+  - kgf validation compared the input with bounds *rounded to nearest*
+    (10..5099 kgf), so 10 kgf (0.098 kN) and 5099 kgf (50.003 kN) passed and
+    were solved outside the 0.1-50 kN range. Validation now checks the kN value
+    and the advertised/input `min`/`max` are rounded inwards (11..5098 kgf).
+  - Switching units at the limit produced an invalid value (0.1 kN -> 10 kgf);
+    `convertLoad` keeps an in-range load in range.

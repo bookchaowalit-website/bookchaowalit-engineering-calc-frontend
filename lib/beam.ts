@@ -49,14 +49,46 @@ export function roundForUnit(value: number, unit: ForceUnit): number {
 
 export type Validation = { ok: true } | { ok: false; errors: string[] };
 
-/** `load` is in `unit`; the allowed range is fixed in kN and reported in the chosen unit. */
+const EPSILON = 1e-9;
+
+/**
+ * Allowed load range expressed in `unit`, rounded *inwards* to the unit's
+ * display precision (min up, max down). Rounding to nearest would advertise
+ * 10 kgf as the minimum although 10 kgf is 0.098 kN, below the 0.1 kN limit,
+ * and 5099 kgf as the maximum although that is 50.003 kN.
+ */
+export function loadBounds(unit: ForceUnit = "kN"): { min: number; max: number } {
+  const factor = unit === "kN" ? 100 : 1;
+  return {
+    min: Math.ceil(fromKn(LOAD_RANGE.min, unit) * factor - EPSILON) / factor,
+    max: Math.floor(fromKn(LOAD_RANGE.max, unit) * factor + EPSILON) / factor,
+  };
+}
+
+/** `load` is in `unit`; it is checked against the physical range in kN and reported in the chosen unit. */
 export function validate(span: number, load: number, unit: ForceUnit = "kN"): Validation {
   const errors: string[] = [];
   if (!Number.isFinite(span) || span < SPAN_RANGE.min || span > SPAN_RANGE.max) errors.push(`Span must be between ${SPAN_RANGE.min} and ${SPAN_RANGE.max} m.`);
-  const min = roundForUnit(fromKn(LOAD_RANGE.min, unit), unit);
-  const max = roundForUnit(fromKn(LOAD_RANGE.max, unit), unit);
-  if (!Number.isFinite(load) || load < min || load > max) errors.push(`Load must be between ${min} and ${max} ${unit}.`);
+  const loadKn = toKn(load, unit);
+  const { min, max } = loadBounds(unit);
+  if (!Number.isFinite(load) || loadKn < LOAD_RANGE.min - EPSILON || loadKn > LOAD_RANGE.max + EPSILON) {
+    errors.push(`Load must be between ${min} and ${max} ${unit}.`);
+  }
   return errors.length ? { ok: false, errors } : { ok: true };
+}
+
+/**
+ * Convert an entered load between units for the input box. A load that was in
+ * range stays in range after rounding (0.1 kN becomes 11 kgf, not an invalid
+ * 10 kgf); NaN (empty input) stays NaN.
+ */
+export function convertLoad(load: number, from: ForceUnit, to: ForceUnit): number {
+  if (!Number.isFinite(load)) return load;
+  const loadKn = toKn(load, from);
+  const rounded = roundForUnit(fromKn(loadKn, to), to);
+  if (loadKn < LOAD_RANGE.min - EPSILON || loadKn > LOAD_RANGE.max + EPSILON) return rounded;
+  const { min, max } = loadBounds(to);
+  return Math.min(max, Math.max(min, rounded));
 }
 
 /**
