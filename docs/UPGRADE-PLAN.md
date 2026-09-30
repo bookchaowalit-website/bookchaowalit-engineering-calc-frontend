@@ -17,3 +17,7 @@ Score: 7/10 (was 5/10) — beam math is tested and validated, results flag stale
 - Beam math moved to `lib/beam.ts` (tested): moment + end shear for uniform/service (wL²/8, wL/2) and point (PL/4, P/2) cases, input validation.
 - Fixed silent bad input: an empty field used to compute with 0 and out-of-range values were accepted; errors now show in an alert list with `aria-invalid` fields.
 - Results are marked STALE when inputs change after a run; case buttons expose `aria-pressed`; added README and ignored `*.tsbuildinfo`.
+
+## Done in this pass (pass 2)
+
+- Added config-driven canonical host (the app had no sitemap or robots at all): `lib/site.ts` resolves `NEXT_PUBLIC_SITE_URL` (validated; clear error on a non-http(s) value, default is the Vercel project URL) and feeds `metadataBase` plus generated `app/sitemap.ts` / `app/robots.ts` (`/api/` disallowed), matching the portfolio-wide pattern. Tested in `lib/site.test.ts`.
